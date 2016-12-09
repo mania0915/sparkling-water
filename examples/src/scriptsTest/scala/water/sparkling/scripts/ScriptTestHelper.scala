@@ -1,27 +1,46 @@
 package water.sparkling.scripts
 
 import java.io.File
+import java.net.InetAddress
 
-import org.apache.spark.h2o.FunSuiteWithLogging
+import org.apache.spark.h2o.backends.SharedBackendConf
+import org.apache.spark.h2o.backends.SharedBackendConf._
+import org.apache.spark.h2o.backends.external.ExternalBackendConf
+import org.apache.spark.h2o.{BackendIndependentTestHelper, FunSuiteWithLogging}
 import org.apache.spark.repl.h2o.{CodeResults, H2OInterpreter}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import water.init.NetworkInit
 
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 
-trait ScriptsTestHelper extends FunSuiteWithLogging with BeforeAndAfterAll {
+
+trait ScriptsTestHelper extends FunSuiteWithLogging with BeforeAndAfterAll with BackendIndependentTestHelper {
+
   self: Suite =>
   var sparkConf: SparkConf = _
   var sc: SparkContext = _
 
   override protected def beforeAll(): Unit = {
+    val cloudName = uniqueCloudName("scripts-tests")
+    sparkConf.set(PROP_CLOUD_NAME._1, cloudName)
+    sparkConf.set(PROP_CLIENT_IP._1, sys.props.getOrElse("H2O_CLIENT_IP", NetworkInit.findInetAddressForSelf().getHostAddress))
+
+    val cloudSize = 2
+    sparkConf.set(ExternalBackendConf.PROP_EXTERNAL_H2O_NODES._1, cloudSize.toString)
+    if(testsInExternalMode(sparkConf)){
+      startCloud(cloudSize, cloudName, sparkConf.get("spark.ext.h2o.client.ip"))
+    }
     sc = new SparkContext(org.apache.spark.h2o.H2OConf.checkSparkConf(sparkConf))
     super.beforeAll()
   }
 
   override protected def afterAll(): Unit = {
+    if(testsInExternalMode(sc.getConf)){
+      stopCloud()
+    }
     if(sc!=null){
       sc.stop()
     }
@@ -40,8 +59,8 @@ trait ScriptsTestHelper extends FunSuiteWithLogging with BeforeAndAfterAll {
       .set("spark.task.maxFailures", "1") // Any task failures are suspicious
       .set("spark.rpc.numRetries", "1") // Any RPC failures are suspicious
       .set("spark.deploy.maxExecutorRetries", "1") // Do not restart executors
-    .setJars(Array(assemblyJar))
-
+      .set("spark.ext.h2o.backend.cluster.mode", sys.props.getOrElse("spark.ext.h2o.backend.cluster.mode", "internal"))
+      .setJars(Array(assemblyJar))
     conf
   }
 

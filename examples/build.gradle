@@ -58,6 +58,7 @@ dependencies {
 }
 
 integTest {
+  systemProperty "spark.ext.h2o.backend.cluster.mode", detectBackendClusterMode()
   systemProperty "spark.testing",   "true"
   systemProperty "spark.test.home", "${sparkHome}"
   systemProperty "sparkling.test.hdp.version", "${hdpVersion}"
@@ -72,6 +73,7 @@ integTest {
 
 // Setup test environment for scripts test
 scriptsTest {
+  systemProperty "spark.ext.h2o.backend.cluster.mode", detectBackendClusterMode()
   systemProperty "spark.testing",   "true"
   systemProperty "spark.test.home", "${sparkHome}"
   systemProperty "sparkling.test.log.dir", new File(project.getBuildDir(), "h2ologs-test")
@@ -89,4 +91,7 @@ scriptsTest {
   maxHeapSize = "4g"
   // Working dir will be root project
   workingDir = rootDir
+
+    testLogging.showStandardStreams = true
+    testLogging.showStackTraces = true
 }
