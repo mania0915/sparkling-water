@@ -23,7 +23,6 @@ import org.apache.spark.mllib.linalg.Vectors
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner
-import water.DKV
 
 import scala.util.Random
 
@@ -48,7 +47,7 @@ class SVMModelTest extends FunSuite with SharedSparkTestContext {
 
     val trainFrame = h2oContext.asH2OFrame(trainDF, "bubbles")
     trainFrame.replace(0, trainFrame.vec(0).toCategoricalVec).remove()
-    DKV.put(trainFrame.key, trainFrame)
+    trainFrame.update()
     val initialWeights = Vectors.dense(1, 1, 1, 1, 1)
     val weightsDF = sc.parallelize(Array(Tuple1(initialWeights))).toDF("Vector")
     val weightsFrame = hc.asH2OFrame(weightsDF, "weights")

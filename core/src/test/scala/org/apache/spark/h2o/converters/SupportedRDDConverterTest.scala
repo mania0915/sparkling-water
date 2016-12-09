@@ -405,7 +405,7 @@ class SupportedRDDConverterTest extends TestBase with SharedSparkTestContext {
   test("H2OFrame with categorical column into RDD"){
     val hf = hc.asH2OFrame(sc.parallelize(1 to 100).map(_.toString))
     hf.replace(0, hf.vec(0).toCategoricalVec).remove()
-    DKV.put(hf.key, hf)
+    hf.update()
     val rdd = hc.asRDD[StringHolder](hf)
     assert(rdd.count() == hf.numRows(), "Number of row should match")
   }
